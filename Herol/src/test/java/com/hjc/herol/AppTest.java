@@ -44,7 +44,7 @@ public class AppTest
 			bean.setMsg("test bean1");
 			bean.setScore(100.2d);
 			SubBean sub1 = new SubBean();
-			sub1.setId(11l);
+			sub1.setId(13l);
 			sub1.setStr("sub bean 1");
 			SubBean sub2 = new SubBean();
 			sub2.setId(12l);
@@ -60,6 +60,7 @@ public class AppTest
 			logger.info(key.getId() + "");
 			logger.info(key.getType() + "");
 		}
+
 		// query
 		List<TestBean> list = ds.createQuery(TestBean.class).asList();
 		for (TestBean testBean : list) {
@@ -68,13 +69,13 @@ public class AppTest
 			// .field("_id").equal(testBean.getId()));
 		}
 		// update
-		/*ds.update(
+		ds.update(
 				ds.createQuery(TestBean.class).field("_id").equal(2),
-				ds.createUpdateOperations(TestBean.class).set("subBeans.11.str", "update map val"));
+				ds.createUpdateOperations(TestBean.class).set("subBeans.12.str", "update map val"));
 		// query
 		List<TestBean> list2 = ds.createQuery(TestBean.class).asList();
 		for (TestBean testBean : list2) {
 			logger.info(JSON.toJSONString(testBean));
-		}*/
+		}
 	}
 }
