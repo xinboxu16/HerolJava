@@ -31,6 +31,12 @@ public class AppTest
 	 * @throws
 	 */
 	public static void main(String[] args) {
+		mongoTest();
+	}
+	
+	//測試mongodb连接
+	private static void mongoTest()
+	{
 		Datastore ds = MorphiaUtil.getDatastore();
 		for (long i = 1l; i <= 3l; i++) {
 			TestBean bean = new TestBean();
@@ -62,13 +68,13 @@ public class AppTest
 			// .field("_id").equal(testBean.getId()));
 		}
 		// update
-		ds.update(
+		/*ds.update(
 				ds.createQuery(TestBean.class).field("_id").equal(2),
 				ds.createUpdateOperations(TestBean.class).set("subBeans.11.str", "update map val"));
 		// query
 		List<TestBean> list2 = ds.createQuery(TestBean.class).asList();
 		for (TestBean testBean : list2) {
 			logger.info(JSON.toJSONString(testBean));
-		}
+		}*/
 	}
 }

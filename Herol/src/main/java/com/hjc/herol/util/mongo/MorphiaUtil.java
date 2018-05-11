@@ -44,6 +44,7 @@ public class MorphiaUtil {
 		Morphia morphia = new Morphia();
 		//告诉Morphia去扫描一个包,映射包中的所有类
 		morphia.mapPackage("com.hjc.herol");
+		//创建数据库
 		ds = morphia.createDatastore(mongo, "herol");
 		//调用 Datastore.ensureIndexes() 使你的索引生效。
 		ds.ensureIndexes();
