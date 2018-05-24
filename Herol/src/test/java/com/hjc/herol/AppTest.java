@@ -13,10 +13,6 @@ import com.alibaba.fastjson.JSON;
 import com.hjc.herol.util.mongo.MorphiaUtil;
 import com.hjc.herol.util.mongo.SubBean;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
-
 /**
  * Unit test for simple App.
  */
