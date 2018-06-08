@@ -23,21 +23,15 @@ public class Helper<T> {
 		Type[] t = parameterizedType.getActualTypeArguments();
 		tClass = (Class<T>) t[0];
 		
-		init();
-	}
-	
-	public void init()
-	{
 		log = LoggerFactory.getLogger(tClass);
-		log.info("Helper Constructors");
 	}
 	
 	/**
 	 * 读取socket配置
 	 */
-	protected Properties readProperties() throws IOException{
+	protected Properties readProperties(String name) throws IOException{
 		Properties properties = new Properties();
-		InputStream inputStream = tClass.getResourceAsStream("/net.properties");
+		InputStream inputStream = tClass.getResourceAsStream(name);
 		Reader reader =  new InputStreamReader(inputStream, Charset.forName("UTF-8"));
 		properties.load(reader);
 		inputStream.close();

@@ -7,10 +7,10 @@ import java.util.concurrent.Executors;
 import com.hjc.herol.task.ExecutorPool;
 import com.hjc.herol.util.Helper;
 
+import eu.medsea.mimeutil.MimeUtil;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -92,7 +92,7 @@ public class HttpServer extends Helper<HttpServer> {
 	{
 		try
 		{
-			p = readProperties();
+			p = readProperties("/net.properties");
 			
 			isSSL = Boolean.parseBoolean(p.getProperty("isSSL"));
 			
@@ -123,7 +123,7 @@ public class HttpServer extends Helper<HttpServer> {
 			 * 2. 用于客户端的BootStrap，不接受新的连接，并且是在父通道类完成一些操作。
 			 */
 			ServerBootstrap bootstrap = new ServerBootstrap();
-			//设置serverbootstrap要使用的Eventloopgroup，这个Eventloopgroup将用于色热VRchannel和被接收的子channel的i/o处理
+			//设置serverbootstrap要使用的Eventloopgroup，这个Eventloopgroup将用于socketchannel和被接收的子channel的i/o处理
 			bootstrap.group(bossGroup, workGroup);
 			//指定要使用的channel实现
 			//用它来建立新accept的连接，用于构造serversocketchannel的工厂类
@@ -138,10 +138,10 @@ public class HttpServer extends Helper<HttpServer> {
 	        * 所以，如果backlog过小，可能会出现accept速度跟不上，A、B队列满了，导致新的客户端无法连接。要注意的是，backlog对程序支持的 
 	        * 连接数并无影响，backlog影响的只是还没有被accept取出的连接 
 	        */
-			bootstrap.option(ChannelOption.SO_BACKLOG, 128);//设置TCP缓冲区 
-			bootstrap.option(ChannelOption.SO_SNDBUF, 32 * 1024);//设置发送数据缓冲大小
-			bootstrap.option(ChannelOption.SO_RCVBUF, 32 * 1024);//设置接受数据缓冲大小
-			bootstrap.childOption(ChannelOption.SO_KEEPALIVE, true);//保持连接
+//			bootstrap.option(ChannelOption.SO_BACKLOG, 128);//设置TCP缓冲区 
+//			bootstrap.option(ChannelOption.SO_SNDBUF, 32 * 1024);//设置发送数据缓冲大小
+//			bootstrap.option(ChannelOption.SO_RCVBUF, 32 * 1024);//设置接受数据缓冲大小
+//			bootstrap.childOption(ChannelOption.SO_KEEPALIVE, false);//保持连接
 			/**
 			 * 通过添加hanlder，我们可以监听Channel的各种动作以及状态的改变，包括连接，绑定，接收消息等
 			 * 在基类AbstractBootstrap有handler方法，目的是添加一个handler，监听Bootstrap的动作，客户端的Bootstrap中，继承了这一点
@@ -154,7 +154,11 @@ public class HttpServer extends Helper<HttpServer> {
 			ch.closeFuture().sync();
 		}catch (Exception e) {  
             e.printStackTrace();  
-        }
+        }finally
+		{
+        	bossGroup.shutdownGracefully();
+			workGroup.shutdownGracefully();
+		}
 		
 	}
 	
@@ -171,7 +175,7 @@ public class HttpServer extends Helper<HttpServer> {
 		protected void initChannel(SocketChannel ch) throws Exception {
 			// TODO Auto-generated method stub
 			ChannelPipeline pipeline = ch.pipeline();
-			
+			System.out.println("initChannel pipeline"+pipeline.toString()+pipeline.hashCode());
 			/* http request解码  表示接收客户端发送消息*/
 			/**
 			 * HttpRequestDecoder先通过RequestLine和Header解析成HttpRequest对象，传入到HttpObjectAggregator。
@@ -180,7 +184,7 @@ public class HttpServer extends Helper<HttpServer> {
 			 */
 			pipeline.addLast("decoder", new HttpRequestDecoder());
 			//设置块的最大字节数
-			pipeline.addLast("aggregator", new HttpObjectAggregator(512*1024));
+			pipeline.addLast("aggregator", new HttpObjectAggregator(1024*1024*64));
 			
 			/* http response 编码  表示向客户端发送消息*/
 			pipeline.addLast("encoder", new HttpResponseEncoder());
@@ -199,9 +203,10 @@ public class HttpServer extends Helper<HttpServer> {
 			 * 一个是抽象类ChannelHandlerAdapter类
 			 */
 			/* http response handler */
-			pipeline.addLast("outbound", new HttpOutHandler());
+			//pipeline.addLast("outbound", new HttpOutHandler());
 			/* http request handler */
 			pipeline.addLast("inbound", new HttpInHandler());
+
 		}
 	}
 	
@@ -215,6 +220,7 @@ public class HttpServer extends Helper<HttpServer> {
 	}
 	
 	public static void main(String args[]) {
+		MimeUtil.registerMimeDetector("eu.medsea.mimeutil.detector.MagicMimeMimeDetector");
 		ExecutorPool.initThreadsExcutor();// 初始化线程池
 		HttpServer.getInstance().start();
 	}
