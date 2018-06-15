@@ -2,6 +2,8 @@ package com.hjc.herol.core;
 
 import com.hjc.herol.util.Helper;
 
+import eu.medsea.mimeutil.MimeUtil;
+
 public class GameServer extends Helper<GameServer> {
 	public static volatile boolean shutdown = false;
 	private volatile static GameServer server;
@@ -18,5 +20,10 @@ public class GameServer extends Helper<GameServer> {
 			}
 		}
 		return server;
+	}
+	
+	public static void init()
+	{
+		MimeUtil.registerMimeDetector("eu.medsea.mimeutil.detector.MagicMimeMimeDetector");
 	}
 }

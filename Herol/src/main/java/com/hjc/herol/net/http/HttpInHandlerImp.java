@@ -427,7 +427,7 @@ public class HttpInHandlerImp extends Helper<HttpInHandlerImp> {
 		        
 		        // 同过netty的村可多File对象直接将文件写入到发送缓冲区，最后为sendFileFeature增加GenericFeatureListener，
 		        // 如果发送完成，打印“Transfer complete”
-	        	ChannelFuture fileFuture = ctx.write(new ChunkedFile(randomAccessFile, 0, fileLength, 1024), ctx.newProgressivePromise());
+	        	ChannelFuture fileFuture = ctx.write(new ChunkedFile(randomAccessFile, 0, fileLength, 8192), ctx.newProgressivePromise());
 	        	fileFuture.addListener(new ChannelProgressiveFutureListener() {
 					
 					public void operationComplete(ChannelProgressiveFuture future) {
@@ -447,7 +447,7 @@ public class HttpInHandlerImp extends Helper<HttpInHandlerImp> {
 	        	
 	        	ChannelFuture lastContentFuture = ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
 	        	lastContentFuture.addListener(ChannelFutureListener.CLOSE);
-	        	fileFuture.addListener(ChannelFutureListener.CLOSE);
+	        	//fileFuture.addListener(ChannelFutureListener.CLOSE);
 		        
 			} catch (FileNotFoundException e) {
 				closeFile(randomAccessFile);

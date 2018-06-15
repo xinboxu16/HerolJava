@@ -10,10 +10,9 @@ import java.nio.charset.Charset;
 import java.util.Properties;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Helper<T> {
-	public Logger log;
+	public static Logger log;
 	private Class<T> tClass;
 	
 	@SuppressWarnings("unchecked")
@@ -23,7 +22,7 @@ public class Helper<T> {
 		Type[] t = parameterizedType.getActualTypeArguments();
 		tClass = (Class<T>) t[0];
 		
-		log = LoggerFactory.getLogger(tClass);
+		log = Utils.getLoggerObj(tClass);
 	}
 	
 	/**

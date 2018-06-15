@@ -56,8 +56,7 @@ public class Router extends Helper<Router> {
 			break;		
 		default:
 			log.error("未知协议号:{}", data.getTypeid());
-			HttpInHandler.writeJSON(ctx,
-					ProtoMessage.getErrorResp("未知协议号" + data.getTypeid()));
+			HttpInHandler.writeJSON(ctx, ProtoMessage.getErrorResp("未知协议号" + data.getTypeid()));
 			break;
 		}
 	}
