@@ -168,6 +168,7 @@ public class SocketServer extends Helper<SocketServer>{
 	}
 	
 	public static void main(String[] args) {
+		
 		ExecutorPool.initThreadsExcutor();// 初始化线程池
 		SocketServer server = new SocketServer();
 		server.initData();

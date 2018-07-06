@@ -12,6 +12,7 @@ public class SocketHandler extends ChannelHandlerAdapter {
 	
 	@Override
 	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+		//消息会在这个方法接收到，msg就是经过解码器解码后得到的消息，框架自动帮你做好了粘包拆包和解码的工作
 		handler.channelRead(ctx, msg);
 	}
 
@@ -23,6 +24,11 @@ public class SocketHandler extends ChannelHandlerAdapter {
 	@Override
 	public void channelActive(ChannelHandlerContext ctx) throws Exception {
 		handler.channelActive(ctx);
+	}
+	
+	@Override
+	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+		handler.channelInactive(ctx);
 	}
 	
 	@Override
@@ -38,11 +44,16 @@ public class SocketHandler extends ChannelHandlerAdapter {
 	}
 	
 	@Override
+	public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+		Channel channel = ctx.channel();
+		System.out.println("[SERVER] - " + channel.remoteAddress() + " 连接过来\n");
+	}
+		
+	@Override
     public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {  
-        Channel incoming = ctx.channel();  
-        //ChatServer.channels.remove(incoming);  
-  
-        System.out.println("[SERVER] - " + incoming.remoteAddress() + " 离开\n");  
+        Channel channel = ctx.channel();  
+        //ChatServer.channels.remove(channel);  
+        System.out.println("[SERVER] - " + channel.remoteAddress() + " 离开\n");  
   
         // A closed Channel is automatically removed from ChannelGroup,  
         // so there is no need to do "channels.remove(ctx.channel());"  

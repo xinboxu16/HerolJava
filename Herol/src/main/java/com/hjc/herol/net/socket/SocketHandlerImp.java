@@ -10,6 +10,7 @@ import com.hjc.herol.util.Constants;
 import com.hjc.herol.util.Helper;
 import com.hjc.herol.util.Utils;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.group.ChannelGroup;
@@ -94,7 +95,13 @@ public class SocketHandlerImp extends Helper<SocketHandlerImp>{
 	}
 	
 	public void channelActive(ChannelHandlerContext ctx) {
-		log.info("ip:{}建立连接", ctx.channel().remoteAddress());
+		Channel channel = ctx.channel();
+		log.info("ip:{}建立连接", channel.remoteAddress());
+	}
+	
+	public void channelInactive(ChannelHandlerContext ctx) {
+		Channel channel = ctx.channel();
+		log.info("ip:{}掉线", channel.remoteAddress());
 	}
 	
 	public void write(ChannelHandlerContext ctx, Object msg) {
