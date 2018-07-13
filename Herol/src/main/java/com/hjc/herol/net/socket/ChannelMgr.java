@@ -3,6 +3,7 @@ package com.hjc.herol.net.socket;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -17,7 +18,7 @@ import io.netty.channel.ChannelHandlerContext;
  * 
  */
 public class ChannelMgr extends Helper<ChannelMgr> {
-	public ConcurrentHashMap<String, ChannelUser> channelMap;
+	public Map<String, ChannelUser> channelMap;
 	private AtomicLong channelIdGen;
 	private static ChannelMgr instance;
 	
@@ -47,14 +48,16 @@ public class ChannelMgr extends Helper<ChannelMgr> {
 	 * @return ChannelUser
 	 * @throws
 	 */
-	public ChannelUser addChannelUser(Channel channel, Long userId) {
+	public ChannelUser addChannelUser(ChannelHandlerContext ctx, Long userId) {
 		ChannelUser ret = null;
 		synchronized (channelMap) {
+			Channel channel = ctx.channel();
 			//Long channelId = Long.valueOf(ChannelMgr.getInstance().genChannelId());
 			String channelId = channel.id().asShortText();
 			ret = new ChannelUser();
 			ret.channelId = channelId;
-			ret.channel = channel;
+			ret.channel = ctx.channel();
+			ret.ctx = ctx;
 			ret.userId = userId;
 			channelMap.put(channelId, ret);
 		}
@@ -163,14 +166,18 @@ public class ChannelMgr extends Helper<ChannelMgr> {
 	 * @return List<ChannelUser>
 	 * @throws
 	 */
-	public List<ChannelUser> getAllChannels() {
-		List<ChannelUser> list = new LinkedList<ChannelUser>();
-		synchronized (channelMap) {
-			for (ChannelUser user : channelMap.values()) {
-				list.add(user);
-			}
-		}
-		return list;
+//	public List<ChannelUser> getAllChannels() {
+//		List<ChannelUser> list = new LinkedList<ChannelUser>();
+//		synchronized (channelMap) {
+//			for (ChannelUser user : channelMap.values()) {
+//				list.add(user);
+//			}
+//		}
+//		return list;
+//	}
+	
+	public Map<String, ChannelUser> getAllChannels() {
+		return channelMap;
 	}
 	
 	/**

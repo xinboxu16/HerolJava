@@ -3,6 +3,11 @@ package com.hjc.herol.net.socket;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
+import com.hjc.herol.manager.socket.SocketMessageManager;
+import com.hjc.herol.manager.socket.factory.Impl.KeepAliveReponse;
+import com.hjc.herol.manager.socket.factory.Impl.TestFactory;
+import com.hjc.herol.manager.task.TaskManager;
+import com.hjc.herol.schedule.HeartBeatSchedule;
 import com.hjc.herol.task.ExecutorPool;
 import com.hjc.herol.util.Helper;
 
@@ -17,9 +22,11 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.CharsetUtil;
 
 public class SocketServer extends Helper<SocketServer>{
 	
@@ -48,7 +55,7 @@ public class SocketServer extends Helper<SocketServer>{
 		bootstrap.group(bossGroup, workGroup);
 		bootstrap.channel(NioServerSocketChannel.class);
 		//设置TCP缓冲区 
-		bootstrap.option(ChannelOption.SO_BACKLOG, 1024);
+		bootstrap.option(ChannelOption.SO_BACKLOG, 32);
 		
 		/**
 		 * // 通过NoDelay禁用Nagle,使消息立即发出去，不用等待到一定的数据量才发出去
@@ -133,14 +140,14 @@ public class SocketServer extends Helper<SocketServer>{
             */
 			
 			//我们可以参考以上官方的编解码代码，将实现我们客户化的protobuf编解码插件，但是要支持多种不同类型protobuf数据在一个socket上传输：
-			pipeline.addLast(new CustomProtobufDecoder());
-			pipeline.addLast(new CustomProtobufEncoder());
+			pipeline.addLast("decoder", new CustomProtobufDecoder());
+			pipeline.addLast("encoder", new CustomProtobufEncoder());
 			//pipeline.addLast(new StringDecoder(CharsetUtil.UTF_8));
 			//pipeline.addLast(new StringEncoder(CharsetUtil.UTF_8));
+			pipeline.addLast("timeout", new IdleStateHandler(20, 0, 0,  TimeUnit.SECONDS));// //此两项为添加心跳机制,60秒查看一次在线的客户端channel是否空闲  
 			// 业务逻辑处理
 			pipeline.addLast(new SocketHandler());
-			pipeline.addLast("timeout", new IdleStateHandler(100, 0, 0,  TimeUnit.SECONDS));// //此两项为添加心跳机制,60秒查看一次在线的客户端channel是否空闲  
-			pipeline.addLast(new HeartBeatServerHandler());// 心跳处理handler 
+			//pipeline.addLast(new HeartBeatServerHandler());// 心跳处理handler 
 		}
 		
 	}
@@ -168,38 +175,13 @@ public class SocketServer extends Helper<SocketServer>{
 	}
 	
 	public static void main(String[] args) {
-		
+		SocketMessageManager.getInsatnce().registerPacketFactory(10001, new TestFactory());
+		SocketMessageManager.getInsatnce().registerPacketFactory(100001, new KeepAliveReponse());
+		TaskManager.getInstance().start();
+		TaskManager.getInstance().registerSimpleSchedule(HeartBeatSchedule.class, HeartBeatSchedule.class.getName(), HeartBeatSchedule.class.getName(), 5);
 		ExecutorPool.initThreadsExcutor();// 初始化线程池
 		SocketServer server = new SocketServer();
 		server.initData();
 		server.start();
 	}
 }
-
-class HeartBeatServerHandler extends ChannelHandlerAdapter {  
-	
-	public int aa = 0;
-    private int loss_connect_time = 0;  
-  
-    @Override  
-    public void userEventTriggered(ChannelHandlerContext ctx, Object evt)  
-            throws Exception {  
-        if (evt instanceof IdleStateEvent) {  
-            IdleStateEvent event = (IdleStateEvent) evt;  
-            if (event.state() == IdleState.READER_IDLE) {  
-                loss_connect_time++;  
-                System.out.println("[60 秒没有接收到客户端" + ctx.channel().id()  
-                        + "的信息了]");  
-                if (loss_connect_time > 2) {  
-                    // 超过20秒没有心跳就关闭这个连接  
-                    System.out.println("[关闭这个不活跃的channel:" + ctx.channel().id()  
-                            + "]");  
-                    ctx.channel().close();  
-                }  
-            }  
-        } else {  
-            super.userEventTriggered(ctx, evt);  
-        }  
-    }  
-  
-}  

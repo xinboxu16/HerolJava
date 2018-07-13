@@ -42,6 +42,9 @@ public class SocketRouter extends Helper<SocketRouter> {
 		case ProtoIds.TEST:
 			//SocketHandler.writeJSON(ctx, "delay");
 			break;
+		case ProtoIds.CREATE_ROLE:
+			//playerMgr.createRole(ctx, data);
+			break;
 		case ProtoIds.EXIT_SCENE:
 			//fightMgr.exitScene(data.getUserid());
 			break;

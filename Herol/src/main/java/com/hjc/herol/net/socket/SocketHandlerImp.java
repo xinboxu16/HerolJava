@@ -1,15 +1,20 @@
 package com.hjc.herol.net.socket;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Map;
+
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.google.protobuf.MessageLite;
 import com.hjc.herol.core.GameServer;
-import com.hjc.herol.net.ProtoIds;
-import com.hjc.herol.net.ProtoMessage;
+import com.hjc.herol.manager.socket.SocketMessageManager;
 import com.hjc.herol.task.ExecutorPool;
 import com.hjc.herol.util.Constants;
 import com.hjc.herol.util.Helper;
-import com.hjc.herol.util.Utils;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
@@ -43,7 +48,16 @@ public class SocketHandlerImp extends Helper<SocketHandlerImp>{
 	 * @throws
 	 */
 	public void dataHandle(final ChannelHandlerContext ctx, final Object msg) {
-		String body = (String) msg;
+		@SuppressWarnings("unchecked")
+		Map<Integer, ByteBuf> messages = (Map<Integer, ByteBuf>)(msg);
+		for (int cmd : messages.keySet()) {
+			ByteBuf buf = messages.get(cmd);
+			if (buf.hasArray()) {
+				SocketMessageManager.getInsatnce().onMessage(cmd, buf, ctx);
+			}
+		}
+
+/*		String body = (String) msg;
 		body = Utils.codeFilter(body, ENCRIPT_DECRIPT);
 		ProtoMessage data = null;
 		try {
@@ -57,18 +71,18 @@ public class SocketHandlerImp extends Helper<SocketHandlerImp>{
 			if (data.getTypeid() != null && data.getTypeid() != ProtoIds.TEST) {
 				log.info("read :" + body);
 			}
-		}
+		}*/
 		
 		//SocketRouter.getInstance().route(data, ctx);
 	}
 	
 	public static void writeJSON(ChannelHandlerContext ctx, Object msg) {
 		if (msg == null || msg instanceof String) {
-			ctx.writeAndFlush(msg);
+			ctx.channel().writeAndFlush(msg);
 		} else {
-			String sentMsg = JSON.toJSONString(msg);
+			//String sentMsg = JSON.toJSONString(msg);
 			if (ctx.channel().isWritable()) {
-				ctx.writeAndFlush(sentMsg);
+				ctx.channel().writeAndFlush(msg);
 				log.warn("channelId:{}", ctx.channel().id().asShortText());
 			}
 		}
@@ -91,23 +105,27 @@ public class SocketHandlerImp extends Helper<SocketHandlerImp>{
 			//FightMgr.getInstance().exitPkSceneMap(userid);
 			//FightMgr.getInstance().exitWaitingUsers(userid);
 		}
+		ChannelMgr.getInstance().removeChannel(ctx.channel());
 		ctx.close();
 	}
 	
 	public void channelActive(ChannelHandlerContext ctx) {
 		Channel channel = ctx.channel();
 		log.info("ip:{}建立连接", channel.remoteAddress());
-	}
+		// 添加到channel管理
+		ChannelMgr.getInstance().addChannelUser(ctx, 0L);	}
 	
 	public void channelInactive(ChannelHandlerContext ctx) {
 		Channel channel = ctx.channel();
 		log.info("ip:{}掉线", channel.remoteAddress());
+		ChannelMgr.getInstance().removeChannel(ctx.channel());
+		ctx.close();
 	}
 	
 	public void write(ChannelHandlerContext ctx, Object msg) {
 		if (Constants.MSG_LOG_DEBUG) {
-			String resp = (String) msg;
-			log.info("ip:{},write:{}", ctx.channel().remoteAddress(), resp);
+			//String resp = (String) msg;
+			log.info("ip:{},write:{}", ctx.channel().remoteAddress(), msg.toString());
 		}
 	}
 	

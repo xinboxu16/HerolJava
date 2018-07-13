@@ -1,0 +1,74 @@
+syntax = "proto3";//指定版本信息，不指定会报错
+package com.hjc.herol.proto.test;
+
+option java_package = "com.hjc.herol.proto.test";
+option java_outer_classname = "CommonPb";
+
+option optimize_for = LITE_RUNTIME;
+
+//响应头文件，请求时不需要，只需要有cmd，发生异常时cmd=1，消息内容如下
+message ResponseHead{
+   int32 cmd = 1;//返回的命令号
+   int32 errCode = 2;//状态码 <0位异常 =0为正常请求成功
+   string err = 3;//错误的内容
+   int32 requestCmd = 4;//请求的命令号
+}
+
+//同步请求标志,后台测试使用
+message SyncStat{
+   int64 id = 1;
+   int32 stat = 2;
+}
+
+//100000心跳请求
+message KeepAliveRequest{
+   int32 cmd = 1;
+   string name = 2;
+}
+
+//100001心跳响应
+message KeepAliveResponse{
+   int32 cmd = 1;
+}
+
+//物品信息
+message ItemInfo{
+   int32 entId = 1;//物品id
+   int32 num = 2;//数量
+}
+
+//掉落包道具的描述
+message DroppackInfo{
+   int32 entId = 1;//实体id
+   string name = 2;//名称
+   int32 minNum = 3;//最小数量
+   int32 maxNum = 4;//最大数量
+}
+	
+//属性值
+message AttrProperty{
+   string propName = 1;//属性名称
+   int32 value = 2;//属性值
+   int32 addValue = 3;//升级或者其他 公式里面计算增加的值
+   bool abs = 4;//true ,value是绝对值,false,value是百分比
+}
+
+//单个装备信息
+message EquipInfo{
+   int64 treasuryId = 1;//装备的数据库id
+   AttrProperty buildAttr = 2;//装备的打造属性
+   AttrProperty specialAttr = 3;//装备的特殊属性
+}
+
+
+//性别
+enum SexType {
+    WOMAN = 0;//女性
+    MAN = 1;//男性
+}
+
+//坐标信息
+message Point{
+   int32 posX = 1;//x坐标
+   int32 posY = 2;//y坐标
+}

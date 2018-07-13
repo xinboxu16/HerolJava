@@ -5,6 +5,7 @@ import java.io.Serializable;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.google.protobuf.MessageLite;
 
 public class ProtoMessage implements Serializable {
 	/**
@@ -13,7 +14,7 @@ public class ProtoMessage implements Serializable {
 	private static final long serialVersionUID = -3460913241121151489L;
 	private Short typeid;
 	private Long userid;
-	private JSONObject data;
+	private MessageLite data;
 	
 	public ProtoMessage() {
 		// TODO Auto-generated constructor stub
@@ -62,21 +63,22 @@ public class ProtoMessage implements Serializable {
 		return getResp(msg, code);
 	}
 	
-	public JSONObject getData() {
+	public MessageLite getData() {
 		return this.data;
 	}
 	
-	public void setData(JSONObject data) {
+	public void setData(MessageLite data) {
 		this.data = data;
 	}
 	
 	// 转换为对象传递
 	public <T> T getData(Class<T> t) {
-		return JSON.parseObject(JSON.toJSONString(data), t);
+		//return JSON.parseObject(JSON.toJSONString(data), t);
+		return null;
 	}
 	
 	public <T> void setData(T t) {
-		this.data = JSON.parseObject(JSON.toJSONString(t), JSONObject.class);
+		//this.data = JSON.parseObject(JSON.toJSONString(t), JSONObject.class);
 	}
 	
 	public Short getTypeid() {

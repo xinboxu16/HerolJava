@@ -1,0 +1,10 @@
+compiler.compileProtoFiles=true
+compiler.descriptorFilePath=D\:\\protobuf-all-3.6.0\\protobuf-3.6.0\\src\\google\\protobuf\\descriptor.proto
+compiler.enableProjectSettings=true
+compiler.javaCodeGenerationEnabled=true
+compiler.javaOutputDirectory=src\\main\\java
+compiler.protocFilePath=D\:\\protobuf-all-3.6.0\\protobuf-3.6.0\\win32\\Release\\protoc.exe
+compiler.refreshResources=false
+compiler.useProtocInCustomPath=true
+compiler.useProtocInSystemPath=false
+eclipse.preferences.version=1

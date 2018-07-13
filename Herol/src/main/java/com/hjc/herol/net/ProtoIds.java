@@ -20,7 +20,7 @@ public class ProtoIds {
 	
 	/** 登录请求 **/
 	public static final short EXIT_SCENE = 10002;// 退出场景
-	public static final short FIGHT_ENTER_SCENE = 1;// 进入游戏场景
-	public static final short FIGHT_SKILL = 2;// 释放技能
-	public static final short FIGHT_PICK_HERO = 3;// 释放技能
+	public static final short FIGHT_ENTER_SCENE = 11;// 进入游戏场景
+	public static final short FIGHT_SKILL = 12;// 释放技能
+	public static final short FIGHT_PICK_HERO = 13;// 释放技能
 }

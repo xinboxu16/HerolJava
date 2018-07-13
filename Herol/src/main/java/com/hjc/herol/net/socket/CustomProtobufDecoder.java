@@ -1,21 +1,14 @@
 package com.hjc.herol.net.socket;
 
-import java.io.ByteArrayInputStream;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import com.google.protobuf.MessageLite;
-import com.hjc.herol.exception.ExceptionUtils;
-import com.hjc.herol.proto.test.RichManPb;
-import com.hjc.herol.proto.test.RichManPb.RichMan;
-import com.hjc.herol.util.Constants;
 import com.hjc.herol.util.Utils;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
-import io.netty.util.CharsetUtil;
 
 /**
  * 参考ProtobufVarint32FrameDecoder 和 ProtobufDecoder
@@ -29,58 +22,60 @@ public class CustomProtobufDecoder extends ByteToMessageDecoder {
 	@Override
 	protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
 		int headerLen = Integer.parseInt(Utils.getProperty("net", "packetHeaderLength"));
+		byte[] buffer = {};
+		int bodyLength = 0;
+		int cmd = 0;
+		boolean isFull = true;
 		// 如果可读长度小于包头长度，退出。
 		while (in.readableBytes() > headerLen) {
 			//markReaderIndex()把当前的readerIndex赋值到markReaderIndex中。
 			in.markReaderIndex();
 			
-			byte[] buffer = {};
-			ByteBuf bHeader = in.readBytes(4);
-			if (bHeader.hasArray()) {
-				buffer = bHeader.array();
+			if (isFull) {
+				ByteBuf bHeader = in.readBytes(4);
+				if (bHeader.hasArray()) {
+					buffer = bHeader.array();
+				}
+				bodyLength = Utils.bytesToInt(buffer);
+				
+				//是否压缩
+				byte isCompress = in.readByte();
+				if (isCompress == 1) {
+					//压缩
+				}
+				
+				// 读取cmd
+				ByteBuf bCmd = in.readBytes(4);
+				if (bCmd.hasArray()) {
+					buffer = bCmd.array();
+				}
+				cmd = Utils.bytesToInt(buffer);
 			}
-			int bodyLength = Utils.bytesToInt(buffer);
-			
-			//是否压缩
-			byte isCompress = in.readByte();
-			if (isCompress == 1) {
-				//压缩
-			}
-			
-			// 读取cmd
-			ByteBuf bCmd = in.readBytes(4);
-			if (bCmd.hasArray()) {
-				buffer = bCmd.array();
-			}
-			int cmd = Utils.bytesToInt(buffer);
-			
-			
-			// 如果可读长度小于body长度，恢复读指针，退出。
+
+			// 如果可读长度小于body长度，恢复读指针，退出。表示半包 粘包
 			if (in.readableBytes() < bodyLength) {
+				//in.skipBytes(4);//舍弃头部
 				in.resetReaderIndex();
+				isFull = false;
 				return;
 			}
 			
+			isFull = true;
+			
 			// 读取body
 			ByteBuf bBody = in.readBytes(bodyLength);
-			if (bBody.hasArray()) {
-				buffer = bBody.array();
-			}
+//			if (bBody.hasArray()) {
+//				buffer = bBody.array();
+//			}
 			
 			String aString = new String(buffer, "GBK");
-			byte[] as = aString.getBytes();
 			String as2 = new String(buffer, "UTF-8");
 			String as3 = new String(aString.getBytes(), "UTF-8");
-			String as1 = new String(as, "UTF-8");
-			System.out.println(aString);
-
-			RichManPb.RichMan richMan = RichManPb.RichMan.parseFrom(as2.getBytes("UTF-8"));
-			out.add(richMan.getCmd());
+			
+			Map<Integer, ByteBuf> map = new HashMap<Integer, ByteBuf>();
+			map.put(cmd, bBody);
+			out.add(map);
 		}
-	}
-	
-	private MessageLite decodeBody(byte[] buf) throws Exception {
-		throw ExceptionUtils.createException(Constants.ExceptionType.StringError, "canot find decode class");
 	}
 	
 //	protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
