@@ -1,7 +1,14 @@
 package com.hjc.herol.herolrouter.client;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+
+import com.alibaba.fastjson.JSONObject;
 import com.hjc.herol.herolrouter.client.service.AccountService;
 import com.hjc.herol.herolrouter.server.NotifyService;
 import com.hjc.herol.herolrouter.server.ServerService;
@@ -47,6 +54,7 @@ import com.hjc.herol.util.Helper;
 	localhost:8080/home/view/
 	localhost:8080/home/view/view
 */  
+
 @Controller
 @RequestMapping(value = "/route")//这个注解会将 HTTP 请求映射到 MVC 和 REST 控制器的处理方法上
 public class RouteController extends Helper<RouteController>{
@@ -67,5 +75,29 @@ public class RouteController extends Helper<RouteController>{
 	public static final String COUNTRY_CACHE = "country_cache";
 	public static final String JUNZHU_CACHE_STRING = "junzhu_cache";
 	
-	
+	@RequestMapping(value="/loginOrRegist", method=RequestMethod.POST)
+	public void loginOrRegist(HttpServletRequest request, HttpServletResponse response)
+	{
+		String username = request.getParameter("name");
+		String password = request.getParameter("pwd");
+		
+		JSONObject ret = new JSONObject();
+		if (username == null) {
+			ret.put("code", 1);
+			ret.put("msg", "用户名不能为空");
+			writeJson(ret, response, request.getRemoteAddr());
+		}
+		
+		if (password == null) {
+			ret.put("code", 1);
+			ret.put("msg", "密码不能为空");
+			writeJSON(ret, response, request.getRemoteAddr());
+			return;
+		}
+		
+		username = username.trim();
+		password = password.trim();
+		
+		int state = accountService.loginOrRegist(username, password, 0);
+	}
 }
