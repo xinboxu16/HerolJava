@@ -1,14 +1,24 @@
 package com.hjc.herol.util.hibernate;
 
-import java.applet.AppletContext;
+import java.lang.reflect.Field;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
+import org.hibernate.query.Query;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
 
+import com.alibaba.fastjson.JSONObject;
 import com.hjc.herol.exception.ExceptionUtils;
 import com.hjc.herol.util.Constants;
 import com.hjc.herol.util.Helper;
+import com.hjc.herol.util.SpringUtil;
+import com.hjc.herol.util.cache.MemcacheSupport;
 import com.hjc.herol.util.cache.MemcacheUtil;
 
 /**
@@ -41,6 +51,8 @@ import com.hjc.herol.util.cache.MemcacheUtil;
  */
 
 public class HibernateUtil extends Helper<HibernateUtil>{
+	public static Map<Class<?>, String> beanKeyMap = new HashMap<Class<?>, String>();
+	
 	/**
 	 * SessionFactory 对象
 		配置对象被用于创造一个 SessionFactory 对象，使用提供的配置文件为应用程序依次配置 Hibernate，并允许实例化一个会话对象。SessionFactory 是一个线程安全对象并由应用程序所有的线程所使用。
@@ -63,19 +75,180 @@ public class HibernateUtil extends Helper<HibernateUtil>{
 	 */
 	public static SessionFactory buildSessionFactory() {
 		log.info("开始构建hibernate");
-		String path = "classpath*:spring-conf/applicationContext.xml";
-		AppletContext aContext = new FileSystemXmlApplicationContext(path);
+		sessionFactory = SpringUtil.getBean("sessionFactory");
+		log.info("结束构建hibernate");
+		
+		return sessionFactory;
 	}
 	
-	public static <T> T find(Class<T> t, String where) {
+	public static String getKeyField(Class<?> field) {
+		synchronized (beanKeyMap) {
+			String key = beanKeyMap.get(field);
+			if (null != key) {
+				return key;
+			}
+			Field[] fs = field.getDeclaredFields();
+			for (Field f : fs) {
+				//isAnnotationPresent无参的那个方法判断是否存在注解，而这个api判断是否存在指定Class的注解
+				if (f.isAnnotationPresent(javax.persistence.Id.class)) {
+					key = f.getName();
+					beanKeyMap.put(field, key);
+					break;
+				}
+			}
+			return key;
+		}
+	}
+	
+	public static <T> T find(Class<T> t, long id) throws Exception {
+		String keyField = getKeyField(t);
+		if (keyField == null) {
+			throw new RuntimeException("类型" + t + "没有标注主键");
+		}
+		if (!MemcacheUtil.cachedClass.contains(t)) {
+			return find(t, "where "+keyField+"="+id, false);
+		}
+		T ret = MemcacheUtil.get(t, id);
+		if (ret == null) {
+			log.info("MC未命中{}#{}", t.getSimpleName(), id);
+			ret = find(t, "where "+keyField+"="+id, false);
+			if (ret != null) {
+				log.info("DB命中{}#{}", t.getSimpleName(), id);
+				MemcacheUtil.add(ret, id);
+			} else {
+				log.info("DB未命中{}#{}", t.getSimpleName(), id);
+			}
+		} else {
+			log.info("MC命中{}#{}", t.getSimpleName(), id);
+		}
+		return ret;
+	}
+	
+	public static <T> T find(Class<T> t, String where) throws Exception {
 		return find(t, where, true);
 	}
 	
-	public static <T> T find(Class<T> t, String where, boolean checkMCControl) {
+	public static <T> T find(Class<T> t, String where, boolean checkMCControl) throws Exception {
 		if (checkMCControl && MemcacheUtil.cachedClass.contains(t)) {
 			// 请使用static <T> T find(Class<T> t,long id)
+			//为何RuntimeException不需要捕获 http://ku-uga.iteye.com/blog/814275
 			throw ExceptionUtils.createException(Constants.ExceptionType.StringError, "由MemcacheUtil控制的类不能直接查询DB:" + t);
 		}
-		Session session = SessionFactory.
+		Session session = sessionFactory.getCurrentSession();
+		Transaction transaction = session.beginTransaction();
+		T ret = null;
+		try {
+			//FIXME 使用 session的get方法代替。
+			String hqlString = "from " + t.getSimpleName() + " " + where;
+			Query<?> query = session.createQuery(hqlString);
+			//当确定返回的实例只有一个或者null时 用uniqueResult()方法
+			ret = (T)query.uniqueResult();
+			transaction.commit();
+		} catch (Exception e) {
+			transaction.rollback();
+			log.error("list fail for {} {}", t, where);
+			log.error("list fail", e);
+			throw new Exception("查询异常");
+		}
+		return ret;
+	}
+	
+	public static boolean insert(Object obj)
+	{
+		Session session = sessionFactory.getCurrentSession();
+		session.beginTransaction();
+		try {
+			session.save(obj);
+			session.getTransaction().commit();
+		} catch (Exception e) {
+			log.error("要insert的数据{}", obj == null ? "null" : JSONObject.toJSON(obj).toString());
+			log.error("保存出错", e);
+			session.getTransaction().rollback();
+			return false;
+		}
+		return true;
+	}
+	
+	public static boolean save(Object o) {
+		Session session = sessionFactory.getCurrentSession();
+		Transaction transaction = session.beginTransaction();
+		boolean mcOk = false;
+		try {
+			if (o instanceof MemcacheSupport) {
+				// 需要对控制了的对象在第一次存库时调用MC.add
+				MemcacheSupport support = (MemcacheSupport) o;
+				// MC中控制了哪些类存缓存。
+				MemcacheUtil.update(o, support.getIdentifier());
+				mcOk = true;
+				session.update(o);
+			} else {
+				session.saveOrUpdate(o);
+			}
+			transaction.commit();
+		} catch (Exception e) {
+			log.error("要save的数据{},{}", o, o == null ? "null" : JSONObject.toJSON(o).toString());
+			if (mcOk) {
+				log.error("memcacheUtil保存成功后报错，可能是数据库条目丢失。");
+			}
+			log.error("保存出错", e);
+			mcOk = false;
+			transaction.rollback();
+		}
+		return mcOk;
+	}
+	
+	/**
+	 * @param t
+	 * @param where
+	 *            例子： where uid>100
+	 * @return
+	 */
+	public static <T> List<T> list(Class<T> t, String where) {
+		Session session = sessionFactory.getCurrentSession();
+		Transaction transaction = session.beginTransaction();
+		List<T> list = Collections.EMPTY_LIST;
+		try {
+			String hql = "from "+t.getSimpleName()+" "+ where;
+			Query query = session.createQuery(hql);
+			list = (List<T>) query.list();
+			transaction.commit();
+		} catch (Exception e) {
+			transaction.rollback();
+			log.error("list fail for {} {}", t, where);
+		}
+		return list;
+	}
+	
+	/**
+	 * 注意这个方法会返回大于等于1的值。数据库无记录也会返回1，而不是null
+	 * @param t
+	 * @return
+	 */
+	public static <T> Long getTableIDMax(Class<T> t) {
+		Long id = null;
+		Session session = sessionFactory.getCurrentSession();
+		Transaction transaction = session.beginTransaction();
+		String hql = "select max(id) from "+t.getSimpleName();
+		try {
+			Query query = session.createQuery(hql);
+			Object uniqueResult = query.uniqueResult();
+			if (uniqueResult == null) {
+				id = 1L;
+			}else {
+				id = Long.parseLong(uniqueResult+"");
+				id = Math.max(1L, id);
+			}
+			transaction.commit();
+		} catch (Exception e) {
+			transaction.rollback();
+			log.error("query max id fail for {} {} {}", t, hql, e);
+		}
+		return id;
+	}
+	
+	public static void destroy()
+	{
+		sessionFactory.getCurrentSession().close();
+		sessionFactory.close();
 	}
 }

@@ -6,7 +6,7 @@ import com.hjc.herol.util.Constants.ExceptionType;
 
 public class ExceptionFactory implements IExceptionFactory{
 
-	public Exception createException(ExceptionType eType, String message) {
+	public RuntimeException createException(ExceptionType eType, String message) {
 		AbstractException exception = null;
 		if (ExceptionType.StringError == eType) {
 			exception = new StringException();
@@ -19,9 +19,9 @@ public class ExceptionFactory implements IExceptionFactory{
 
 class StringException extends AbstractException {
 
-	public Exception createException()
+	public RuntimeException createException()
 	{
-		return new Exception(message);
+		return new RuntimeException(message);
 	}
 	
 }

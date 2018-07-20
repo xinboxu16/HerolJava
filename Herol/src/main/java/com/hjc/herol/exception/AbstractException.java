@@ -11,7 +11,7 @@ public abstract class AbstractException {
 		this.message = message;
 	}
 	
-	public Exception createException()
+	public RuntimeException createException()
 	{
 		return null;
 	}
